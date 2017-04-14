@@ -1,0 +1,9 @@
+syntax: glob
+.buckconfig.local
+.buckd/
+.DS_Store
+buck-out/
+buckd*
+buck_server
+android_agent_path
+bootstrapper_jar

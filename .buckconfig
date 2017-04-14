@@ -1,0 +1,21 @@
+[willerz]
+  llvm_base = /usr/local/Cellar/llvm/4.0.0
+[cxx]
+  ar = $(config willerz.llvm_base)/bin/llvm-ar
+  as = $(config willerz.llvm_base)/bin/llvm-as
+  aspp = $(config willerz.llvm_base)/bin/clang
+  cc = $(config willerz.llvm_base)/bin/clang
+  combined_preprocess_and_compile = true
+  cpp = $(config willerz.llvm_base)/bin/clang-cpp
+  cxx = $(config willerz.llvm_base)/bin/clang++
+  cxxflags = -isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include -std=c++1z -Wall -Wextra -pedantic -march=native -O2
+  cxxpp = $(config willerz.llvm_base)/bin/clang++
+  gtest_dep = //:gtest
+  ld = $(config willerz.llvm_base)/bin/clang++
+  ldflags = -L$(config willerz.llvm_base)/lib -Wl,-rpath,$(config willerz.llvm_base)/lib -std=c++1z -Wall -Wextra -pedantic -march=native -O2
+  untracked_headers = warn
+  untracked_headers_whitelist = $(config willerz.llvm_base)/include/.*, /Applications/Xcode.app/Contents/Developer/Platforms/.*
+[httpserver]
+  port = 0
+[project]
+  ignore = .DS_Store,.hg,.hgsub,.hgsubstate

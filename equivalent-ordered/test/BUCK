@@ -1,0 +1,39 @@
+cxx_test (
+	name = 'MapTest',
+	srcs = [
+		'MapTest.cpp',
+	],
+	deps = [
+		'//equivalent-ordered:proposal',
+	],
+)
+
+cxx_test (
+	name = 'MultiMapTest',
+	srcs = [
+		'MultiMapTest.cpp',
+	],
+	deps = [
+		'//equivalent-ordered:proposal',
+	],
+)
+
+cxx_test (
+	name = 'MultiSetTest',
+	srcs = [
+		'MultiSetTest.cpp',
+	],
+	deps = [
+		'//equivalent-ordered:proposal',
+	],
+)
+
+cxx_test (
+	name = 'SetTest',
+	srcs = [
+		'SetTest.cpp',
+	],
+	deps = [
+		'//equivalent-ordered:proposal',
+	],
+)
