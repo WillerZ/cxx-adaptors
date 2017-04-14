@@ -14,7 +14,7 @@
   ld = $(config willerz.llvm_base)/bin/clang++
   ldflags = -L$(config willerz.llvm_base)/lib -Wl,-rpath,$(config willerz.llvm_base)/lib -std=c++1z -Wall -Wextra -pedantic -march=native -O2
   untracked_headers = warn
-  untracked_headers_whitelist = $(config willerz.llvm_base)/include/.*, /Applications/Xcode.app/Contents/Developer/Platforms/.*
+  untracked_headers_whitelist = /usr/local/Cellar/llvm/4.0.0/.*, /Applications/Xcode.app/Contents/Developer/Platforms/.*
 [httpserver]
   port = 0
 [project]

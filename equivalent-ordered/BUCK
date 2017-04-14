@@ -1,12 +1,14 @@
 cxx_library (
 	name = 'proposal',
-	header_namespace = '',
+	header_namespace = 'proposed',
 	exported_headers = {
-		'proposed/map': 'map.h',
-		'proposed/multimap': 'multimap.h',
-		'proposed/multiset': 'multiset.h',
-		'proposed/set': 'set.h',
-		'proposed/string': 'string.h',
+		'base-hack.h': 'base-hack.h',
+		'common-hacky-helpers.h': 'common-hacky-helpers.h',
+		'map': 'map.h',
+		'multimap': 'multimap.h',
+		'multiset': 'multiset.h',
+		'set': 'set.h',
+		'string': 'string.h',
 	},
 	visibility = [
     	'PUBLIC',

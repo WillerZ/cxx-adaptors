@@ -6,66 +6,130 @@ namespace proposed {
 template <class Key,
           class T,
           class Compare = std::less<Key>,
-          class Allocator = std::allocator<std::pair<const Key, T> > >
+          class Allocator = std::allocator<std::pair<const Key, T>>>
 struct map : std::map<Key, T, Compare, Allocator> {
  private:
+  using this_type = map<Key, T, Compare, Allocator>;
   using base_type = std::map<Key, T, Compare, Allocator>;
 
  public:
-  using key_type = typename base_type::key_type;
-  using value_type = typename base_type::value_type;
-  using size_type = typename base_type::size_type;
-  using difference_type = typename base_type::difference_type;
-  using key_compare = typename base_type::key_compare;
-  using value_compare = typename base_type::value_compare;
-  using allocator_type = typename base_type::allocator_type;
-  using reference = typename base_type::reference;
-  using const_reference = typename base_type::const_reference;
-  using pointer = typename base_type::pointer;
-  using const_pointer = typename base_type::const_pointer;
-  using iterator = typename base_type::iterator;
-  using const_iterator = typename base_type::const_iterator;
-  using reverse_iterator = typename base_type::reverse_iterator;
-  using const_reverse_iterator = typename base_type::const_reverse_iterator;
-
   using base_type::map;
-  using base_type::operator=;
-  using base_type::get_allocator;
+  using base_type::operator[];
+  using base_type::at;
+  using base_type::insert_or_assign;
+  using base_type::try_emplace;
+#include "base-hack.h"
+ private:
+  static inline key_type const& value_from_iterator(const_iterator in) {
+    return in->first;
+  }
+#include "common-hacky-helpers.h"
+ public:
+  template <typename AdaptableType, typename M>
+  typename std::enable_if<is_write_equivalent<AdaptableType>(),
+                          std::pair<iterator, bool>>::type
+  insert_or_assign(AdaptableType&& key, M&& obj) {
+    auto found = findHint(key);
+    if (!found.second) {
+      found.first->second = std::forward<M>(obj);
+      return found;
+    }
+    return {this->base_type::insert_or_assign(
+                found.first, adapt(std::forward<AdaptableType>(key)),
+                std::forward<M>(obj)),
+            true};
+  }
 
-  using base_type::begin;
-  using base_type::end;
-  using base_type::cbegin;
-  using base_type::cend;
-  using base_type::rbegin;
-  using base_type::rend;
-  using base_type::crbegin;
-  using base_type::crend;
+  template <typename AdaptableType, typename M>
+  typename std::enable_if<is_write_equivalent<AdaptableType>(), iterator>::type
+  insert_or_assign(const_iterator hint, AdaptableType&& key, M&& obj) {
+    auto found = findHint(hint, key);
+    if (!found.second) {
+      auto result = get_iterator(found.first);
+      result->second = std::forward<M>(obj);
+      return result;
+    }
+    return this->base_type::insert_or_assign(
+        found.first, adapt(std::forward<AdaptableType>(key)),
+        std::forward<M>(obj));
+  }
 
-  using base_type::empty;
-  using base_type::size;
-  using base_type::max_size;
+  template <typename AdaptableType, typename... Args>
+  typename std::enable_if<is_write_equivalent<AdaptableType>(),
+                          std::pair<iterator, bool>>::type
+  try_emplace(AdaptableType&& key, Args&&... args) {
+    auto found = findHint(key);
+    if (!found.second) {
+      return found;
+    }
+    return {this->base_type::try_emplace(
+                found.first, adapt(std::forward<AdaptableType>(key)),
+                std::forward<Args>(args)...),
+            true};
+  }
 
-  using base_type::clear;
-  using base_type::insert;
-  using base_type::emplace;
-  using base_type::emplace_hint;
-  using base_type::erase;
-  using base_type::swap;
+  template <typename AdaptableType, typename... Args>
+  typename std::enable_if<is_write_equivalent<AdaptableType>(), iterator>::type
+  try_emplace(const_iterator hint, AdaptableType&& key, Args&&... args) {
+    auto found = findHint(hint, key);
+    if (!found.second) {
+      return get_iterator(found.first);
+    }
+    return this->base_type::try_emplace(found.first,
+                                        adapt(std::forward<AdaptableType>(key)),
+                                        std::forward<Args>(args)...);
+  }
 
-  using base_type::count;
-  using base_type::find;
-  using base_type::equal_range;
-  using base_type::lower_bound;
-  using base_type::upper_bound;
+  template <typename AdaptableType>
+  typename std::enable_if<is_write_equivalent<AdaptableType const&>(),
+                          size_type>::type
+  erase(AdaptableType const& key) {
+    auto found = findHint(key);
+    if (found.second) {
+      return 0;
+    }
+    this->base_type::erase(found.first);
+    return 1;
+  }
 
-  using base_type::key_comp;
-  using base_type::value_comp;
+  template <typename AdaptableType>
+  typename std::enable_if<is_write_equivalent<AdaptableType const&>(), T&>::type
+  at(AdaptableType const& key) {
+    auto found = findHint(key);
+    if (found.second) {
+      throw std::out_of_range{"No such key in map"};
+    }
+    return found.first->second;
+  }
 
-  /*
-    using base_type::extract;
-    using base_type::merge;
-    using node_type = typename base_type::node_type;
-    using insert_return_type = typename base_type::insert_return_type;
-    */
+  template <typename AdaptableType>
+  typename std::enable_if<is_write_equivalent<AdaptableType const&>(),
+                          T const&>::type
+  at(AdaptableType const& key) const {
+    auto found = findHint(key);
+    if (found.second) {
+      throw std::out_of_range{"No such key in map"};
+    }
+    return found.first->second;
+  }
+
+  template <typename AdaptableType>
+  typename std::enable_if<is_write_equivalent<AdaptableType>(), T&>::type
+  operator[](AdaptableType&& key) {
+    return try_emplace(std::forward<AdaptableType>(key)).first->second;
+  }
+
+  // Can't do emplace or emplace_hint - Ambiguity
+
+  // template <typename AdaptableType>
+  // typename std::enable_if<is_write_equivalent<AdaptableType,0>(),
+  //                         node_type>::type
+  // extract(const AdaptableType& key) {
+  //   auto found = findHint(key);
+  //   if (found.second) {
+  //     return {};
+  //   }
+  //   return extract(found.first);
+  // }
 };
 }
