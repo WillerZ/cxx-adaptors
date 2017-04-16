@@ -5,7 +5,7 @@
 #include <test-utils/copy.h>
 
 using MultiSetType =
-    proposed::multiset<std::string, proposed::string_adapt<std::less<>>>;
+    proposed::multiset<std::string, proposed::string_collection_ordered_adapt>;
 
 using namespace std::literals;
 using namespace test_utils;

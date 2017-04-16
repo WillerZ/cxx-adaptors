@@ -3,6 +3,7 @@ cxx_library (
 	header_namespace = 'proposed',
 	exported_headers = {
 		'string': 'string.h',
+		'detail.h': 'detail.h',
 	},
 	visibility = [
     	'PUBLIC',

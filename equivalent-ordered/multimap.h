@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <proposed/detail.h>
 
 namespace proposed {
 template <class Key,
@@ -22,7 +23,7 @@ struct multimap : std::multimap<Key, T, Compare, Allocator> {
 #include "common-hacky-helpers.h"
  public:
   template <typename AdaptableType>
-  typename std::enable_if<is_write_equivalent<AdaptableType const&>(),
+  typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
                           size_type>::type
   erase(const AdaptableType& key) {
     auto range = equal_range(key);
@@ -40,7 +41,7 @@ struct multimap : std::multimap<Key, T, Compare, Allocator> {
   // Can't do insert, emplace or emplace_hint - Ambiguity
 
   // template <typename AdaptableType>
-  // typename std::enable_if<is_write_equivalent<AdaptableType const&>(),
+  // typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
   //                         node_type>::type
   // extract(const AdaptableType& key) {
   //   auto found = findHint(key);

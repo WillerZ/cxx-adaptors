@@ -1,52 +1,45 @@
 #pragma once
 
 #include <string>
-
-// New Concept: AdaptingCompare
-//
-// The type T satisifies AdaptingCompare if:
-// * the type T satisfies Compare, and
-// Given:
-// * adapter, an object of type AdaptingCompare
-// * source, an object of type Source
-// The following expression must be valid:
-// * adapter.adapt<Target, Source>(source)
-// and have one of the following return types:
-// * Target
-// * void
-// If this expression has the return type Target then for all a:
-// * if adapter(a, source) is defined:
-//   * adapter(a, adapter.adapt<Target, Source>(source)) is defined, and
-//     has an equivalent result when contextually converted to bool
-// * if adapter(source, a) is defined:
-//   * adapter(adapter.adapt<Target, Source>(source), a) is defined, and
-//     has an equivalent result when contextually converted to bool
+#include "detail.h"
 
 namespace proposed {
-template <typename Compare>
-struct string_adapt : Compare {
-  using Compare::Compare;
-  using Compare::operator();
+// New Concept: Adapt
+//
+// The type T satisifies Adapt if it meets the requirements of FunctionObject
+// and:
+// * defines the type `result_type` (as any non-void type)
+// * defines a static constexpr boolean template `adapts<X>` for all types `X`
+// Additionally, given:
+// * adapter, an object of type T
+// * source, a possibly cv-qualified object of type Source
+// Either:
+// * `T::adapts<Source>` is false
+// Or:
+// * `T::adapts<Source>` is true; and
+// * adapter(source) returns a valid `result_type`
 
- private:
+template <typename CharT,
+          typename Traits = std::char_traits<CharT>,
+          typename Allocator = std::allocator<CharT>>
+struct basic_string_adapt {
+  using result_type = std::basic_string<CharT, Traits, Allocator>;
   template <typename X>
-  void adapt_helper(X&&, long) {}
+  static bool constexpr adapts{
+      std::is_same_v<X, std::basic_string_view<CharT, Traits>>};
 
-  template <typename CharT, typename Traits, typename Allocator>
-  auto adapt_helper(std::basic_string_view<CharT, Traits> const& source, int)
-      -> decltype(std::basic_string<CharT, Traits, Allocator>{source}) {
-    return std::basic_string<CharT, Traits, Allocator>{source};
-  }
-
- public:
-  template <typename Target, typename Source>
-  auto adapt(Source const& source)
-      -> decltype(adapt_helper<typename Target::value_type,
-                               typename Target::traits_type,
-                               typename Target::allocator_type>(source, 0)) {
-    return adapt_helper<typename Target::value_type,
-                        typename Target::traits_type,
-                        typename Target::allocator_type>(source, 0);
+  result_type operator()(std::basic_string_view<CharT, Traits> const& input) {
+    return result_type{input};
   }
 };
+
+using string_adapt = basic_string_adapt<char>;
+using wstring_adapt = basic_string_adapt<wchar_t>;
+using u16string_adapt = basic_string_adapt<char16_t>;
+using u32string_adapt = basic_string_adapt<char32_t>;
+
+using string_collection_ordered_adapt =
+    detail::with_adapt<std::less<>, string_adapt>;
+using string_collection_unordered_adapt =
+    detail::with_adapt<std::equal_to<>, string_adapt>;
 }  // namespace proposed

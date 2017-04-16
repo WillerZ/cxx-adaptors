@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <proposed/detail.h>
 
 namespace proposed {
 template <class Key,
@@ -26,7 +27,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
 #include "common-hacky-helpers.h"
  public:
   template <typename AdaptableType, typename M>
-  typename std::enable_if<is_write_equivalent<AdaptableType>(),
+  typename std::enable_if<is_write_adaptable<AdaptableType>(),
                           std::pair<iterator, bool>>::type
   insert_or_assign(AdaptableType&& key, M&& obj) {
     auto found = findHint(key);
@@ -41,7 +42,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType, typename M>
-  typename std::enable_if<is_write_equivalent<AdaptableType>(), iterator>::type
+  typename std::enable_if<is_write_adaptable<AdaptableType>(), iterator>::type
   insert_or_assign(const_iterator hint, AdaptableType&& key, M&& obj) {
     auto found = findHint(hint, key);
     if (!found.second) {
@@ -55,7 +56,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType, typename... Args>
-  typename std::enable_if<is_write_equivalent<AdaptableType>(),
+  typename std::enable_if<is_write_adaptable<AdaptableType>(),
                           std::pair<iterator, bool>>::type
   try_emplace(AdaptableType&& key, Args&&... args) {
     auto found = findHint(key);
@@ -69,7 +70,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType, typename... Args>
-  typename std::enable_if<is_write_equivalent<AdaptableType>(), iterator>::type
+  typename std::enable_if<is_write_adaptable<AdaptableType>(), iterator>::type
   try_emplace(const_iterator hint, AdaptableType&& key, Args&&... args) {
     auto found = findHint(hint, key);
     if (!found.second) {
@@ -81,7 +82,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_equivalent<AdaptableType const&>(),
+  typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
                           size_type>::type
   erase(AdaptableType const& key) {
     auto found = findHint(key);
@@ -93,7 +94,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_equivalent<AdaptableType const&>(), T&>::type
+  typename std::enable_if<is_write_adaptable<AdaptableType const&>(), T&>::type
   at(AdaptableType const& key) {
     auto found = findHint(key);
     if (found.second) {
@@ -103,7 +104,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_equivalent<AdaptableType const&>(),
+  typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
                           T const&>::type
   at(AdaptableType const& key) const {
     auto found = findHint(key);
@@ -114,7 +115,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_equivalent<AdaptableType>(), T&>::type
+  typename std::enable_if<is_write_adaptable<AdaptableType>(), T&>::type
   operator[](AdaptableType&& key) {
     return try_emplace(std::forward<AdaptableType>(key)).first->second;
   }
@@ -122,7 +123,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   // Can't do emplace or emplace_hint - Ambiguity
 
   // template <typename AdaptableType>
-  // typename std::enable_if<is_write_equivalent<AdaptableType,0>(),
+  // typename std::enable_if<is_write_adaptable<AdaptableType,0>(),
   //                         node_type>::type
   // extract(const AdaptableType& key) {
   //   auto found = findHint(key);

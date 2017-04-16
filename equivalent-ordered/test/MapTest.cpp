@@ -5,7 +5,7 @@
 #include <test-utils/copy.h>
 
 using MapType =
-    proposed::map<std::string, int, proposed::string_adapt<std::less<>>>;
+    proposed::map<std::string, int, proposed::string_collection_ordered_adapt>;
 
 using namespace std::literals;
 using namespace test_utils;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <set>
+#include <proposed/detail.h>
 
 namespace proposed {
 template <class Key,
@@ -21,7 +22,7 @@ struct set : std::set<Key, Compare, Allocator> {
 #include "common-hacky-helpers.h"
  public:
   template <typename AdaptableType>
-  typename std::enable_if<is_write_equivalent<AdaptableType>(),
+  typename std::enable_if<is_write_adaptable<AdaptableType>(),
                           std::pair<iterator, bool>>::type
   insert(AdaptableType&& value) {
     auto found = findHint(value);
@@ -33,7 +34,7 @@ struct set : std::set<Key, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_equivalent<AdaptableType>(), iterator>::type
+  typename std::enable_if<is_write_adaptable<AdaptableType>(), iterator>::type
   insert(const_iterator hint, AdaptableType&& value) {
     auto found = findHint(hint, value);
     if (!found.second) {
@@ -43,7 +44,7 @@ struct set : std::set<Key, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_equivalent<AdaptableType const&>()>::type
+  typename std::enable_if<is_write_adaptable<AdaptableType const&>()>::type
   insert(std::initializer_list<AdaptableType> ilist) {
     for (auto const& elem : ilist) {
       insert(elem);
@@ -51,7 +52,7 @@ struct set : std::set<Key, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_equivalent<AdaptableType const&>(),
+  typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
                           size_type>::type
   erase(const AdaptableType& key) {
     auto found = findHint(key);
@@ -65,7 +66,7 @@ struct set : std::set<Key, Compare, Allocator> {
   // Can't do emplace or emplace_hint - Ambiguity
 
   // template <typename AdaptableType>
-  // typename std::enable_if<is_write_equivalent<AdaptableType const&>(),
+  // typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
   //                         node_type>::type
   // extract(const AdaptableType& key) {
   //   auto found = findHint(key);

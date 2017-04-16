@@ -1,6 +1,7 @@
 #include <vector>
 #include <cstddef>
 #include <functional>
+#include <proposed/detail.h>
 
 namespace std {
 float ceil(float arg);
@@ -521,18 +522,6 @@ struct unordered_set {
   float max_load_factor_;
 
   // Begin transparent query additions
-  template <typename T>
-  struct is_transparent {
-   private:
-    template <typename T1>
-    static typename T1::is_transparent* test(int);
-    template <typename>
-    static void test(...);
-
-   public:
-    static constexpr bool value = !std::is_void<decltype(test<T>(0))>::value;
-  };
-
   template <typename AdaptableType>
   static bool constexpr is_read_equivalent() {
     return !std::is_same<std::decay_t<Key>,
@@ -541,7 +530,8 @@ struct unordered_set {
                          std::decay_t<AdaptableType>>::value &&
            !std::is_same<std::decay_t<const_iterator>,
                          std::decay_t<AdaptableType>>::value &&
-           is_transparent<Hash>::value && is_transparent<KeyEqual>::value;
+           detail::has_is_transparent_type_v<Hash> &&
+           detail::has_is_transparent_type_v<KeyEqual>;
   }
 
  public:
@@ -598,21 +588,16 @@ struct unordered_set {
   // End transparent query additions
   // Begin adaptable mutation additions
  private:
-  // Base case - not adaptable
-  void adapt(...);
-
-  template <typename AdaptableType>
-  auto adapt(AdaptableType&& adaptee) -> decltype(
-      equal_.template adapt<key_type>(std::forward<AdaptableType>(adaptee))) {
-    return equal_.template adapt<key_type>(
-        std::forward<AdaptableType>(adaptee));
-  }
-
   template <typename AdaptableType>
   static bool constexpr is_write_adaptable() {
     return is_read_equivalent<AdaptableType>() &&
-           !std::is_same<void, decltype(std::declval<unordered_set>().adapt(
-                                   std::declval<AdaptableType>()))>::value;
+           detail::has_adapt_type_adapting_v<KeyEqual, AdaptableType>;
+  }
+
+  template <typename AdaptableType>
+  typename std::enable_if_t<is_write_adaptable<AdaptableType>(), key_type>
+  adapt(AdaptableType&& adaptee) {
+    return equal_.adapt()(std::forward<AdaptableType>(adaptee));
   }
 
   template <typename VT>

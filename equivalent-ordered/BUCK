@@ -12,4 +12,7 @@ cxx_library (
 	visibility = [
     	'PUBLIC',
   	],
+	deps = [
+		'//general:proposal',
+	],
 )

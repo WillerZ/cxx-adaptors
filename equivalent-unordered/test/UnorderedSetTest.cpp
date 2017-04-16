@@ -2,7 +2,6 @@
 #include <proposed/string>
 #include <gtest/gtest.h>
 #include <functional>
-#include <string>
 #include <test-utils/copy.h>
 #include <iostream>
 
@@ -10,8 +9,10 @@ struct myhash : std::hash<std::string_view> {
   using is_transparent = void;
 };
 
-using SetType = proposed::
-    unordered_set<std::string, myhash, proposed::string_adapt<std::equal_to<>>>;
+using SetType =
+    proposed::unordered_set<std::string,
+                            myhash,
+                            proposed::string_collection_unordered_adapt>;
 
 using namespace std::literals;
 using namespace test_utils;

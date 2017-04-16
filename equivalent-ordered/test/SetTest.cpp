@@ -4,7 +4,8 @@
 #include <functional>
 #include <test-utils/copy.h>
 
-using SetType = proposed::set<std::string, proposed::string_adapt<std::less<>>>;
+using SetType =
+    proposed::set<std::string, proposed::string_collection_ordered_adapt>;
 
 using namespace std::literals;
 using namespace test_utils;
