@@ -2,13 +2,13 @@
 #include <proposed/string>
 #include <gtest/gtest.h>
 #include <functional>
-#include "copy.h"
+#include <test-utils/copy.h>
 
 using MapType =
     proposed::map<std::string, int, proposed::string_adapt<std::less<>>>;
 
 using namespace std::literals;
-using namespace test_helpers;
+using namespace test_utils;
 
 TEST(ProposedMap, ExactKeyType) {
   auto const kHello = "Hello"s;

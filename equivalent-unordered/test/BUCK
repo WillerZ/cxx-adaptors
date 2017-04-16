@@ -1,0 +1,10 @@
+cxx_test (
+	name = 'UnorderedSetTest',
+	srcs = [
+		'UnorderedSetTest.cpp',
+	],
+	deps = [
+		'//equivalent-unordered:proposal',
+		'//test-utils:copy',
+	],
+)

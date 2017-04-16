@@ -2,13 +2,13 @@
 #include <proposed/string>
 #include <gtest/gtest.h>
 #include <functional>
-#include "copy.h"
+#include <test-utils/copy.h>
 
 using MultiSetType =
     proposed::multiset<std::string, proposed::string_adapt<std::less<>>>;
 
 using namespace std::literals;
-using namespace test_helpers;
+using namespace test_utils;
 
 TEST(ProposedMultiSet, ExactValueType) {
   auto const kHello = "Hello"s;

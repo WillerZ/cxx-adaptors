@@ -1,0 +1,9 @@
+cxx_library (
+	name = 'copy',
+	exported_headers = [
+		'copy.h',
+	],
+    visibility = [
+        'PUBLIC',
+    ],
+)

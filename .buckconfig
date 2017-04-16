@@ -8,11 +8,11 @@
   combined_preprocess_and_compile = true
   cpp = $(config willerz.llvm_base)/bin/clang-cpp
   cxx = $(config willerz.llvm_base)/bin/clang++
-  cxxflags = -isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include -std=c++1z -Wall -Wextra -pedantic -march=native -O2
+  cxxflags = -isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include -std=c++1z -Wall -Wextra -pedantic -march=native -g -O1 -fsanitize=address -fno-optimize-sibling-calls
   cxxpp = $(config willerz.llvm_base)/bin/clang++
   gtest_dep = //:gtest
   ld = $(config willerz.llvm_base)/bin/clang++
-  ldflags = -L$(config willerz.llvm_base)/lib -Wl,-rpath,$(config willerz.llvm_base)/lib -std=c++1z -Wall -Wextra -pedantic -march=native -O2
+  ldflags = -L$(config willerz.llvm_base)/lib -Wl,-rpath,$(config willerz.llvm_base)/lib -std=c++1z -Wall -Wextra -pedantic -march=native -g -O1 -fsanitize=address -fno-optimize-sibling-calls
   untracked_headers = warn
   untracked_headers_whitelist = /usr/local/Cellar/llvm/4.0.0/.*, /Applications/Xcode.app/Contents/Developer/Platforms/.*
 [httpserver]

@@ -1,10 +1,3 @@
-cxx_library (
-	name = 'copy',
-	exported_headers = [
-		'copy.h',
-	],
-)
-
 cxx_test (
 	name = 'MapTest',
 	srcs = [
@@ -12,7 +5,7 @@ cxx_test (
 	],
 	deps = [
 		'//equivalent-ordered:proposal',
-		':copy',
+		'//test-utils:copy',
 	],
 )
 
@@ -33,7 +26,7 @@ cxx_test (
 	],
 	deps = [
 		'//equivalent-ordered:proposal',
-		':copy',
+		'//test-utils:copy',
 	],
 )
 
@@ -44,6 +37,6 @@ cxx_test (
 	],
 	deps = [
 		'//equivalent-ordered:proposal',
-		':copy',
+		'//test-utils:copy',
 	],
 )
