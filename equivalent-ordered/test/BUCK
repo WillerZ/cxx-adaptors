@@ -6,6 +6,7 @@ cxx_test (
 	deps = [
 		'//equivalent-ordered:proposal',
 		'//test-utils:copy',
+		'//general:proposal',
 	],
 )
 
@@ -16,6 +17,7 @@ cxx_test (
 	],
 	deps = [
 		'//equivalent-ordered:proposal',
+		'//general:proposal',
 	],
 )
 
@@ -27,6 +29,7 @@ cxx_test (
 	deps = [
 		'//equivalent-ordered:proposal',
 		'//test-utils:copy',
+		'//general:proposal',
 	],
 )
 
@@ -38,5 +41,6 @@ cxx_test (
 	deps = [
 		'//equivalent-ordered:proposal',
 		'//test-utils:copy',
+		'//general:proposal',
 	],
 )

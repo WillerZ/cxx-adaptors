@@ -6,5 +6,6 @@ cxx_test (
 	deps = [
 		'//equivalent-unordered:proposal',
 		'//test-utils:copy',
+		'//general:proposal',
 	],
 )

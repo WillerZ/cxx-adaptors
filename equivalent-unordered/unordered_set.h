@@ -519,6 +519,172 @@ struct unordered_set {
   Allocator alloc_;
   buckets_type buckets_;
   float max_load_factor_;
+
+  // Begin transparent query additions
+  template <typename T>
+  struct is_transparent {
+   private:
+    template <typename T1>
+    static typename T1::is_transparent* test(int);
+    template <typename>
+    static void test(...);
+
+   public:
+    static constexpr bool value = !std::is_void<decltype(test<T>(0))>::value;
+  };
+
+  template <typename AdaptableType>
+  static bool constexpr is_read_equivalent() {
+    return !std::is_same<std::decay_t<Key>,
+                         std::decay_t<AdaptableType>>::value &&
+           !std::is_same<std::decay_t<iterator>,
+                         std::decay_t<AdaptableType>>::value &&
+           !std::is_same<std::decay_t<const_iterator>,
+                         std::decay_t<AdaptableType>>::value &&
+           is_transparent<Hash>::value && is_transparent<KeyEqual>::value;
+  }
+
+ public:
+  template <typename K>
+  typename std::enable_if<is_read_equivalent<K>(), size_type>::type bucket(
+      const K& key) const {
+    return hash_(key) % buckets_.size();
+  }
+
+  template <typename K>
+  typename std::enable_if<is_read_equivalent<K>(), const_iterator>::type find(
+      const K& key) const {
+    auto bucketIndex = bucket(key);
+    auto& bucket = buckets_[bucketIndex];
+    auto bucketSize = bucket.size();
+    size_t entryIndex{};
+    for (; entryIndex < bucketSize; ++entryIndex) {
+      if (equal_(*bucket[entryIndex], key)) {
+        return {&buckets_, bucketIndex, entryIndex};
+      }
+    }
+    return end();
+  }
+
+  template <typename K>
+  typename std::enable_if<is_read_equivalent<K>(),
+                          std::pair<const_iterator, const_iterator>>::type
+  equal_range(const K& key) const {
+    auto iter = find(key);
+    return {iter, iter};
+  }
+
+  template <typename K>
+  typename std::enable_if<is_read_equivalent<K>(), size_type>::type erase(
+      const K& key) {
+    auto iter = find(key);
+    if (iter == end()) {
+      return 0;
+    }
+    erase(iter);
+    return 1;
+  }
+
+  template <typename K>
+  typename std::enable_if<is_read_equivalent<K>(), size_type>::type count(
+      const K& key) const {
+    auto iter = find(key);
+    if (iter == end()) {
+      return 0;
+    }
+    return 1;
+  }
+
+  // End transparent query additions
+  // Begin adaptable mutation additions
+ private:
+  // Base case - not adaptable
+  void adapt(...);
+
+  template <typename AdaptableType>
+  auto adapt(AdaptableType&& adaptee) -> decltype(
+      equal_.template adapt<key_type>(std::forward<AdaptableType>(adaptee))) {
+    return equal_.template adapt<key_type>(
+        std::forward<AdaptableType>(adaptee));
+  }
+
+  template <typename AdaptableType>
+  static bool constexpr is_write_adaptable() {
+    return is_read_equivalent<AdaptableType>() &&
+           !std::is_same<void, decltype(std::declval<unordered_set>().adapt(
+                                   std::declval<AdaptableType>()))>::value;
+  }
+
+  template <typename VT>
+  std::pair<iterator, bool> adapting_insert_helper(VT&& vt) {
+    auto bucketIndex = bucket(vt);
+    auto& bucket = buckets_[bucketIndex];
+    auto bucketSize = bucket.size();
+    size_t entryIndex{};
+    for (; entryIndex < bucketSize; ++entryIndex) {
+      if (equal_(*bucket[entryIndex], vt)) {
+        return {iterator{&buckets_, bucketIndex, entryIndex}, false};
+      }
+    }
+    auto newEntryPtr =
+        std::allocator_traits<allocator_type>::allocate(alloc_, 1);
+    std::allocator_traits<allocator_type>::construct(
+        alloc_, newEntryPtr, adapt(std::forward<VT>(vt)));
+    bucket.emplace_back(newEntryPtr);
+    return {iterator{&buckets_, bucketIndex, entryIndex}, true};
+  }
+
+  template <typename VT>
+  iterator adapting_insert_helper(const_iterator hint, VT&& vt) {
+    auto bucketIndex = bucket(vt);
+    auto& bucket = buckets_[bucketIndex];
+    auto bucketSize = bucket.size();
+    size_t entryIndex{};
+    for (; entryIndex < bucketSize; ++entryIndex) {
+      if (equal_to(*bucket[entryIndex], vt)) {
+        return {&buckets_, bucketIndex, entryIndex};
+      }
+    }
+    auto newEntryPtr =
+        std::allocator_traits<allocator_type>::allocate(alloc_, 1);
+    std::allocator_traits<allocator_type>::construct(
+        alloc_, newEntryPtr, adapt(std::forward<VT>(vt)));
+    if (hint.outer_ == bucketIndex) {
+      bucket.insert(hint.inner_, newEntryPtr);
+      return hint;
+    }
+    if (hint.outer_ >= bucketIndex) {
+      bucket.emplace_back(newEntryPtr);
+      return {&buckets_, bucketIndex, entryIndex};
+    }
+    bucket.insert(0, newEntryPtr);
+    return {&buckets_, bucketIndex, 0};
+  }
+
+ public:
+  template <typename K>
+  typename std::enable_if<is_write_adaptable<K>(),
+                          std::pair<iterator, bool>>::type
+  insert(K&& value) {
+    return adapting_insert_helper(std::forward<K>(value));
+  }
+
+  template <typename K>
+  typename std::enable_if<is_write_adaptable<K>(), iterator>::type insert(
+      const_iterator hint,
+      K&& value) {
+    return adapting_insert_helper(hint, std::forward<K>(value));
+  }
+
+  template <typename K>
+  typename std::enable_if<is_write_adaptable<K>()>::type insert(
+      std::initializer_list<K> ilist) {
+    for (auto const& key : ilist) {
+      insert(key);
+    }
+  }
+
+  // End adaptable mutation additions
 };
 
 template <class Key, class Hash, class KeyEqual, class Allocator>

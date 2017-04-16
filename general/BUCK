@@ -1,0 +1,10 @@
+cxx_library (
+	name = 'proposal',
+	header_namespace = 'proposed',
+	exported_headers = {
+		'string': 'string.h',
+	},
+	visibility = [
+    	'PUBLIC',
+  	],
+)
