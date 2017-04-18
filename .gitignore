@@ -7,7 +7,8 @@ buckd*
 buck_server
 android_agent_path
 bootstrapper_jar
-# Github suggestions:
+
+# Begin Github suggestions:
 # Compiled Object files
 *.slo
 *.lo
