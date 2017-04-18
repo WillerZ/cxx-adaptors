@@ -1,17 +1,21 @@
 #pragma once
 
 #include <map>
-#include <proposed/detail.h>
+#include <proposed/adaptor>
 
 namespace proposed {
 template <class Key,
           class T,
           class Compare = std::less<Key>,
-          class Allocator = std::allocator<std::pair<const Key, T> > >
+          class Allocator = std::allocator<std::pair<const Key, T>>,
+          class KeyAdaptor = no_adaptor,
+          class ValueAdaptor = no_adaptor>
 struct multimap : std::multimap<Key, T, Compare, Allocator> {
  private:
   using this_type = multimap<Key, T, Compare, Allocator>;
   using base_type = std::multimap<Key, T, Compare, Allocator>;
+  using key_adaptor = KeyAdaptor;
+  using value_adaptor = ValueAdaptor;
 
  public:
   using base_type::multimap;
@@ -23,7 +27,7 @@ struct multimap : std::multimap<Key, T, Compare, Allocator> {
 #include "common-hacky-helpers.h"
  public:
   template <typename AdaptableType>
-  typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType const&>(),
                           size_type>::type
   erase(const AdaptableType& key) {
     auto range = equal_range(key);
@@ -41,7 +45,8 @@ struct multimap : std::multimap<Key, T, Compare, Allocator> {
   // Can't do insert, emplace or emplace_hint - Ambiguity
 
   // template <typename AdaptableType>
-  // typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
+  // typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType
+  // const&>(),
   //                         node_type>::type
   // extract(const AdaptableType& key) {
   //   auto found = findHint(key);

@@ -9,10 +9,11 @@ struct myhash : std::hash<std::string_view> {
   using is_transparent = void;
 };
 
-using SetType =
-    proposed::unordered_set<std::string,
-                            myhash,
-                            proposed::string_collection_unordered_adapt>;
+using SetType = proposed::unordered_set<std::string,
+                                        myhash,
+                                        std::equal_to<>,
+                                        std::allocator<std::string>,
+                                        proposed::string_adaptor>;
 
 using namespace std::literals;
 using namespace test_utils;

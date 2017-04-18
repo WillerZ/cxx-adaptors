@@ -1,16 +1,19 @@
 #pragma once
 
 #include <set>
-#include <proposed/detail.h>
+#include <proposed/adaptor>
 
 namespace proposed {
 template <class Key,
           class Compare = std::less<Key>,
-          class Allocator = std::allocator<Key>>
+          class Allocator = std::allocator<Key>,
+          class Adaptor = no_adaptor>
 struct multiset : std::multiset<Key, Compare, Allocator> {
  private:
   using this_type = multiset<Key, Compare, Allocator>;
   using base_type = std::multiset<Key, Compare, Allocator>;
+  using key_adaptor = Adaptor;
+  using value_adaptor = Adaptor;
 
  public:
   using base_type::multiset;
@@ -22,20 +25,25 @@ struct multiset : std::multiset<Key, Compare, Allocator> {
 #include "common-hacky-helpers.h"
  public:
   template <typename AdaptableType>
-  typename std::enable_if<is_write_adaptable<AdaptableType>(), iterator>::type
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType>(),
+                          iterator>::type
   insert(AdaptableType&& value) {
     auto found = upper_bound(value);
-    return insert(found, adapt(std::forward<AdaptableType>(value)));
+    return insert(found, adapt<key_adaptor>(
+                             keyAdaptor_, std::forward<AdaptableType>(value)));
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_adaptable<AdaptableType>(), iterator>::type
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType>(),
+                          iterator>::type
   insert(const_iterator hint, AdaptableType&& value) {
-    return insert(hint, adapt(std::forward<AdaptableType>(value)));
+    return insert(hint, adapt<key_adaptor>(keyAdaptor_,
+                                           std::forward<AdaptableType>(value)));
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_adaptable<AdaptableType const&>()>::type
+  typename std::enable_if<
+      is_write_adaptable<key_adaptor, AdaptableType const&>()>::type
   insert(std::initializer_list<AdaptableType> ilist) {
     for (const auto& elem : ilist) {
       insert(elem);
@@ -43,8 +51,9 @@ struct multiset : std::multiset<Key, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
-                          size_type>::type
+  typename std::enable_if<
+      is_write_adaptable<key_adaptor, AdaptableType const&>(),
+      size_type>::type
   erase(const AdaptableType& key) {
     auto range = equal_range(key);
     if (range.first == end()) {
@@ -61,7 +70,8 @@ struct multiset : std::multiset<Key, Compare, Allocator> {
   // Can't do emplace or emplace_hint - Ambiguity
 
   // template <typename AdaptableType>
-  // typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
+  // typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType
+  // const&>(),
   //                         node_type>::type
   // extract(const AdaptableType& key) {
   //   auto found = findHint(key);

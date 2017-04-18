@@ -4,8 +4,10 @@
 #include <functional>
 #include <test-utils/copy.h>
 
-using MultiSetType =
-    proposed::multiset<std::string, proposed::string_collection_ordered_adapt>;
+using MultiSetType = proposed::multiset<std::string,
+                                        std::less<>,
+                                        std::allocator<std::string>,
+                                        proposed::string_adaptor>;
 
 using namespace std::literals;
 using namespace test_utils;

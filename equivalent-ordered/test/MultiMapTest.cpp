@@ -3,8 +3,12 @@
 #include <gtest/gtest.h>
 #include <functional>
 
-using MultiMapType = proposed::
-    multimap<std::string, int, proposed::string_collection_ordered_adapt>;
+using MultiMapType =
+    proposed::multimap<std::string,
+                       int,
+                       std::less<>,
+                       std::allocator<std::pair<const std::string, int>>,
+                       proposed::string_adaptor>;
 
 using namespace std::literals;
 

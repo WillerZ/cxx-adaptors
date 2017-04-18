@@ -1,7 +1,7 @@
 #include <vector>
 #include <cstddef>
 #include <functional>
-#include <proposed/detail.h>
+#include <proposed/adaptor>
 
 namespace std {
 float ceil(float arg);
@@ -11,7 +11,8 @@ namespace proposed {
 template <class Key,
           class Hash = std::hash<Key>,
           class KeyEqual = std::equal_to<Key>,
-          class Allocator = std::allocator<Key>>
+          class Allocator = std::allocator<Key>,
+          class Adaptor = no_adaptor>
 struct unordered_set {
  private:
   using buckets_type = std::vector<std::vector<Key*>>;
@@ -522,6 +523,23 @@ struct unordered_set {
   float max_load_factor_;
 
   // Begin transparent query additions
+
+  template <typename T>
+  struct has_is_transparent_type {
+   private:
+    template <typename T1>
+    static typename T1::is_transparent* test(int);
+    template <typename>
+    static void test(...);
+
+   public:
+    static constexpr bool value = !std::is_void<decltype(test<T>(0))>::value;
+  };
+
+  template <typename T>
+  static constexpr bool has_is_transparent_type_v{
+      has_is_transparent_type<T>::value};
+
   template <typename AdaptableType>
   static bool constexpr is_read_equivalent() {
     return !std::is_same<std::decay_t<Key>,
@@ -530,8 +548,8 @@ struct unordered_set {
                          std::decay_t<AdaptableType>>::value &&
            !std::is_same<std::decay_t<const_iterator>,
                          std::decay_t<AdaptableType>>::value &&
-           detail::has_is_transparent_type_v<Hash> &&
-           detail::has_is_transparent_type_v<KeyEqual>;
+           has_is_transparent_type_v<Hash> &&
+           has_is_transparent_type_v<KeyEqual>;
   }
 
  public:
@@ -588,16 +606,20 @@ struct unordered_set {
   // End transparent query additions
   // Begin adaptable mutation additions
  private:
+  using key_adaptor = Adaptor;
+  using value_adaptor = Adaptor;
+  key_adaptor keyAdaptor_;
+  value_adaptor valueAdaptor_;
+  static_assert(!adaptor_traits<key_adaptor>::is_adaptor ||
+                std::is_same_v<key_type, typename key_adaptor::target_type>);
+  static_assert(
+      !adaptor_traits<value_adaptor>::is_adaptor ||
+      std::is_same_v<value_type, typename value_adaptor::target_type>);
+
   template <typename AdaptableType>
   static bool constexpr is_write_adaptable() {
     return is_read_equivalent<AdaptableType>() &&
-           detail::has_adapt_type_adapting_v<KeyEqual, AdaptableType>;
-  }
-
-  template <typename AdaptableType>
-  typename std::enable_if_t<is_write_adaptable<AdaptableType>(), key_type>
-  adapt(AdaptableType&& adaptee) {
-    return equal_.adapt()(std::forward<AdaptableType>(adaptee));
+           adaptor_traits<key_adaptor>::template adapts<AdaptableType>;
   }
 
   template <typename VT>
@@ -613,8 +635,7 @@ struct unordered_set {
     }
     auto newEntryPtr =
         std::allocator_traits<allocator_type>::allocate(alloc_, 1);
-    std::allocator_traits<allocator_type>::construct(
-        alloc_, newEntryPtr, adapt(std::forward<VT>(vt)));
+    keyAdaptor_.adapt(newEntryPtr, std::forward<VT>(vt));
     bucket.emplace_back(newEntryPtr);
     return {iterator{&buckets_, bucketIndex, entryIndex}, true};
   }
@@ -632,8 +653,7 @@ struct unordered_set {
     }
     auto newEntryPtr =
         std::allocator_traits<allocator_type>::allocate(alloc_, 1);
-    std::allocator_traits<allocator_type>::construct(
-        alloc_, newEntryPtr, adapt(std::forward<VT>(vt)));
+    keyAdaptor_.adapt(newEntryPtr, std::forward<VT>(vt));
     if (hint.outer_ == bucketIndex) {
       bucket.insert(hint.inner_, newEntryPtr);
       return hint;

@@ -1,17 +1,21 @@
 #pragma once
 
 #include <map>
-#include <proposed/detail.h>
+#include <proposed/adaptor>
 
 namespace proposed {
 template <class Key,
           class T,
           class Compare = std::less<Key>,
-          class Allocator = std::allocator<std::pair<const Key, T>>>
+          class Allocator = std::allocator<std::pair<const Key, T>>,
+          class KeyAdaptor = no_adaptor,
+          class ValueAdaptor = no_adaptor>
 struct map : std::map<Key, T, Compare, Allocator> {
  private:
   using this_type = map<Key, T, Compare, Allocator>;
   using base_type = std::map<Key, T, Compare, Allocator>;
+  using key_adaptor = KeyAdaptor;
+  using value_adaptor = ValueAdaptor;
 
  public:
   using base_type::map;
@@ -27,7 +31,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
 #include "common-hacky-helpers.h"
  public:
   template <typename AdaptableType, typename M>
-  typename std::enable_if<is_write_adaptable<AdaptableType>(),
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType>(),
                           std::pair<iterator, bool>>::type
   insert_or_assign(AdaptableType&& key, M&& obj) {
     auto found = findHint(key);
@@ -36,13 +40,15 @@ struct map : std::map<Key, T, Compare, Allocator> {
       return found;
     }
     return {this->base_type::insert_or_assign(
-                found.first, adapt(std::forward<AdaptableType>(key)),
+                found.first, adapt<KeyAdaptor>(
+                                 keyAdaptor_, std::forward<AdaptableType>(key)),
                 std::forward<M>(obj)),
             true};
   }
 
   template <typename AdaptableType, typename M>
-  typename std::enable_if<is_write_adaptable<AdaptableType>(), iterator>::type
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType>(),
+                          iterator>::type
   insert_or_assign(const_iterator hint, AdaptableType&& key, M&& obj) {
     auto found = findHint(hint, key);
     if (!found.second) {
@@ -51,12 +57,13 @@ struct map : std::map<Key, T, Compare, Allocator> {
       return result;
     }
     return this->base_type::insert_or_assign(
-        found.first, adapt(std::forward<AdaptableType>(key)),
+        found.first,
+        adapt<KeyAdaptor>(keyAdaptor_, std::forward<AdaptableType>(key)),
         std::forward<M>(obj));
   }
 
   template <typename AdaptableType, typename... Args>
-  typename std::enable_if<is_write_adaptable<AdaptableType>(),
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType>(),
                           std::pair<iterator, bool>>::type
   try_emplace(AdaptableType&& key, Args&&... args) {
     auto found = findHint(key);
@@ -64,25 +71,28 @@ struct map : std::map<Key, T, Compare, Allocator> {
       return found;
     }
     return {this->base_type::try_emplace(
-                found.first, adapt(std::forward<AdaptableType>(key)),
+                found.first, adapt<KeyAdaptor>(
+                                 keyAdaptor_, std::forward<AdaptableType>(key)),
                 std::forward<Args>(args)...),
             true};
   }
 
   template <typename AdaptableType, typename... Args>
-  typename std::enable_if<is_write_adaptable<AdaptableType>(), iterator>::type
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType>(),
+                          iterator>::type
   try_emplace(const_iterator hint, AdaptableType&& key, Args&&... args) {
     auto found = findHint(hint, key);
     if (!found.second) {
       return get_iterator(found.first);
     }
-    return this->base_type::try_emplace(found.first,
-                                        adapt(std::forward<AdaptableType>(key)),
-                                        std::forward<Args>(args)...);
+    return this->base_type::try_emplace(
+        found.first,
+        adapt<KeyAdaptor>(keyAdaptor_, std::forward<AdaptableType>(key)),
+        std::forward<Args>(args)...);
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType const&>(),
                           size_type>::type
   erase(AdaptableType const& key) {
     auto found = findHint(key);
@@ -94,7 +104,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_adaptable<AdaptableType const&>(), T&>::type
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType const&>(), T&>::type
   at(AdaptableType const& key) {
     auto found = findHint(key);
     if (found.second) {
@@ -104,7 +114,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_adaptable<AdaptableType const&>(),
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType const&>(),
                           T const&>::type
   at(AdaptableType const& key) const {
     auto found = findHint(key);
@@ -115,7 +125,8 @@ struct map : std::map<Key, T, Compare, Allocator> {
   }
 
   template <typename AdaptableType>
-  typename std::enable_if<is_write_adaptable<AdaptableType>(), T&>::type
+  typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType>(),
+                          T&>::type
   operator[](AdaptableType&& key) {
     return try_emplace(std::forward<AdaptableType>(key)).first->second;
   }
@@ -123,7 +134,7 @@ struct map : std::map<Key, T, Compare, Allocator> {
   // Can't do emplace or emplace_hint - Ambiguity
 
   // template <typename AdaptableType>
-  // typename std::enable_if<is_write_adaptable<AdaptableType,0>(),
+  // typename std::enable_if<is_write_adaptable<key_adaptor, AdaptableType,0>(),
   //                         node_type>::type
   // extract(const AdaptableType& key) {
   //   auto found = findHint(key);

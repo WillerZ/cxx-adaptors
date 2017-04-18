@@ -4,8 +4,11 @@
 #include <functional>
 #include <test-utils/copy.h>
 
-using MapType =
-    proposed::map<std::string, int, proposed::string_collection_ordered_adapt>;
+using MapType = proposed::map<std::string,
+                              int,
+                              std::less<>,
+                              std::allocator<std::pair<const std::string, int>>,
+                              proposed::string_adaptor>;
 
 using namespace std::literals;
 using namespace test_utils;
