@@ -146,10 +146,11 @@ struct chain_adaptor {
   }
 };
 
+namespace detail {
 template <typename Adaptor,
           typename Iterator,
           typename Allocator = std::allocator<typename Adaptor::target_type>>
-struct adapting_iterator {
+struct adapting_input_iterator {
   using value_type = typename Adaptor::target_type;
   using pointer = value_type const*;
   using reference = value_type const&;
@@ -157,59 +158,60 @@ struct adapting_iterator {
       typename std::iterator_traits<Iterator>::difference_type;
   using iterator_category = std::input_iterator_tag;
 
-  adapting_iterator() {}
+  adapting_input_iterator() {}
 
-  adapting_iterator(adapting_iterator&& other)
+  adapting_input_iterator(adapting_input_iterator&& other)
       : adaptor_(std::move(other.adaptor_)),
         underlying_(std::move(other.underlying_)),
         value_(other.value_) {
     other.value_ = nullptr;
   }
-  adapting_iterator(adapting_iterator const& other)
+  adapting_input_iterator(adapting_input_iterator const& other)
       : adaptor_(other.adaptor_), underlying_(other.underlying_) {
     if (other.value_) {
       ensureValue();
     }
   }
 
-  explicit adapting_iterator(Adaptor adaptor, Allocator allocator = {})
+  explicit adapting_input_iterator(Adaptor adaptor, Allocator allocator = {})
       : adaptor_(adaptor), allocator_(allocator) {}
-  explicit adapting_iterator(Iterator underlying, Allocator allocator = {})
+  explicit adapting_input_iterator(Iterator underlying,
+                                   Allocator allocator = {})
       : underlying_(underlying), allocator_(allocator) {}
-  adapting_iterator(Adaptor adaptor,
-                    Iterator underlying,
-                    Allocator allocator = {})
+  adapting_input_iterator(Adaptor adaptor,
+                          Iterator underlying,
+                          Allocator allocator = {})
       : adaptor_(adaptor), underlying_(underlying), allocator_(allocator) {}
-  ~adapting_iterator() { ensureNoValue(); }
+  ~adapting_input_iterator() { ensureNoValue(); }
 
-  adapting_iterator& operator=(adapting_iterator&& other) {
+  adapting_input_iterator& operator=(adapting_input_iterator&& other) {
     ensureNoValue();
-    ::new (static_cast<void*>(this)) adapting_iterator(std::move(other));
+    ::new (static_cast<void*>(this)) adapting_input_iterator(std::move(other));
     return *this;
   }
-  adapting_iterator& operator=(adapting_iterator const& other) {
+  adapting_input_iterator& operator=(adapting_input_iterator const& other) {
     ensureNoValue();
-    ::new (static_cast<void*>(this)) adapting_iterator(other);
+    ::new (static_cast<void*>(this)) adapting_input_iterator(other);
     return *this;
   }
 
-  bool operator==(adapting_iterator const& other) const {
+  bool operator==(adapting_input_iterator const& other) const {
     return adaptor_ == other.adaptor_ && underlying_ == other.underlying_;
   }
-  bool operator!=(adapting_iterator const& other) const {
+  bool operator!=(adapting_input_iterator const& other) const {
     return !operator==(other);
   }
   bool operator==(Iterator const& other) const { return underlying_ == other; }
   bool operator!=(Iterator const& other) const { return !operator==(other); }
 
-  adapting_iterator& operator++() {
+  adapting_input_iterator& operator++() {
     ensureNoValue();
     ++underlying_;
     return *this;
   }
 
-  adapting_iterator operator++(int) {
-    adapting_iterator result{};
+  adapting_input_iterator operator++(int) {
+    adapting_input_iterator result{};
     result.adaptor_ = adaptor_;
     result.underlying_ = underlying_;
     result.value_ = value_;
@@ -253,12 +255,91 @@ struct adapting_iterator {
 template <typename Adaptor,
           typename Iterator,
           typename Allocator = std::allocator<typename Adaptor::target_type>>
+struct adapting_output_iterator {
+  using iterator_category = std::output_iterator_tag;
+
+  adapting_output_iterator() {}
+
+  adapting_output_iterator(adapting_output_iterator&& other)
+      : adaptor_(std::move(other.adaptor_)),
+        underlying_(std::move(other.underlying_)) {}
+  adapting_output_iterator(adapting_output_iterator const& other)
+      : adaptor_(other.adaptor_), underlying_(other.underlying_) {}
+
+  explicit adapting_output_iterator(Adaptor adaptor, Allocator allocator = {})
+      : adaptor_(adaptor), allocator_(allocator) {}
+  explicit adapting_output_iterator(Iterator underlying,
+                                    Allocator allocator = {})
+      : underlying_(underlying), allocator_(allocator) {}
+  adapting_output_iterator(Adaptor adaptor,
+                           Iterator underlying,
+                           Allocator allocator = {})
+      : adaptor_(adaptor), underlying_(underlying), allocator_(allocator) {}
+
+  adapting_output_iterator& operator=(adapting_output_iterator&& other) {
+    ::new (static_cast<void*>(this)) adapting_output_iterator(std::move(other));
+    return *this;
+  }
+  adapting_output_iterator& operator=(adapting_output_iterator const& other) {
+    ::new (static_cast<void*>(this)) adapting_output_iterator(other);
+    return *this;
+  }
+
+  adapting_output_iterator& operator++() {
+    ++underlying_;
+    return *this;
+  }
+
+  adapting_output_iterator operator++(int) {
+    adapting_output_iterator result{*this};
+    operator++();
+    return result;
+  }
+
+  class assignment_proxy {
+    using aTraits = std::allocator_traits<Allocator>;
+    Adaptor adaptor_;
+    Iterator underlying_;
+    Allocator allocator_;
+
+   public:
+    template <typename T>
+    typename std::enable_if<Adaptor::template adapts<T>>::type operator=(
+        T&& thing) {
+      using result_type = typename Adaptor::target_type;
+      result_type* result = aTraits::allocate(allocator_, 1);
+      adaptor_(result, std::forward<T>(thing));
+      *underlying_ = std::move(result);
+      result->~result_type();
+      aTraits::deallocate(allocator_, result, 1);
+    }
+    assignment_proxy(Adaptor adaptor, Iterator underlying, Allocator allocator)
+        : adaptor_(adaptor), underlying_(underlying), allocator_(allocator) {}
+  };
+
+  assignment_proxy operator*() { return {adaptor_, underlying_, allocator_}; }
+
+ private:
+  Adaptor adaptor_;
+  Iterator underlying_;
+  Allocator allocator_;
+};
+}
+
+/**
+ * Return value is an unspecified input iterator. You can usefully use
+ * std::make_move_iterator on the parameter iterator and on the returned
+ * iterator.
+ */
+template <typename Adaptor,
+          typename Iterator,
+          typename Allocator = std::allocator<typename Adaptor::target_type>>
 typename std::enable_if<
     !std::is_same_v<std::decay_t<typename Adaptor::target_type>,
                     std::decay_t<typename Iterator::value_type>>,
-    adapting_iterator<Adaptor, Iterator, Allocator>>::type
-adapt_iterator(Iterator&& iterator, Allocator&& allocator = {}) {
-  return adapting_iterator<Adaptor, Iterator, Allocator>{
+    detail::adapting_input_iterator<Adaptor, Iterator, Allocator>>::type
+adapt_input_iterator(Iterator&& iterator, Allocator&& allocator = {}) {
+  return detail::adapting_input_iterator<Adaptor, Iterator, Allocator>{
       std::forward<Iterator>(iterator), std::forward<Allocator>(allocator)};
 }
 
@@ -267,7 +348,31 @@ typename std::enable_if<
     std::is_same_v<std::decay_t<typename Adaptor::target_type>,
                    std::decay_t<typename Iterator::value_type>>,
     Iterator>::type
-adapt_iterator(Iterator&& iterator, ...) {
+adapt_input_iterator(Iterator&& iterator, ...) {
+  return std::forward<Iterator>(iterator);
+}
+
+/**
+ * Return value is an unspecified output iterator.
+ */
+template <typename Adaptor,
+          typename Iterator,
+          typename Allocator = std::allocator<typename Adaptor::target_type>>
+typename std::enable_if<
+    !std::is_same_v<std::decay_t<typename Adaptor::target_type>,
+                    std::decay_t<typename Iterator::value_type>>,
+    detail::adapting_output_iterator<Adaptor, Iterator, Allocator>>::type
+adapt_output_iterator(Iterator&& iterator, Allocator&& allocator = {}) {
+  return detail::adapting_output_iterator<Adaptor, Iterator, Allocator>{
+      std::forward<Iterator>(iterator), std::forward<Allocator>(allocator)};
+}
+
+template <typename Adaptor, typename Iterator, typename = void>
+typename std::enable_if<
+    std::is_same_v<std::decay_t<typename Adaptor::target_type>,
+                   std::decay_t<typename Iterator::value_type>>,
+    Iterator>::type
+adapt_output_iterator(Iterator&& iterator, ...) {
   return std::forward<Iterator>(iterator);
 }
 
